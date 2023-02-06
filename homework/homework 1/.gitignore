@@ -1,0 +1,9 @@
+
+# ignores for latex
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+svg-inkscape
+*.pdf
+*.synctex.gz
