@@ -6,4 +6,4 @@
 *.log
 svg-inkscape
 *.pdf
-*.synctex.gz
+*.gz
