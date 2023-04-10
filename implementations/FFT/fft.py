@@ -22,9 +22,12 @@ def radix4_fft(x):
 	# Combine the results using twiddle factors
 	X = np.zeros(N, dtype=np.complex128)
 	for k in range(N//4):
-		twiddle1 = np.exp(-2j * np.pi *   k / N)
-		twiddle2 = np.exp(-2j * np.pi * 2*k / N)
-		twiddle3 = np.exp(-2j * np.pi * 3*k / N)
+		# twiddle1 = np.exp(-2j * np.pi *   k / N)
+		# twiddle2 = np.exp(-2j * np.pi * 2*k / N)
+		# twiddle3 = np.exp(-2j * np.pi * 3*k / N)
+		twiddle1 = 1
+		twiddle2 = 1
+		twiddle3 = 1
 		t1 = X1[k] * twiddle1
 		t2 = X2[k] * twiddle2
 		t3 = X3[k] * twiddle3
