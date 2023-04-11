@@ -26,6 +26,8 @@ def radix4_bit_reversal(stages):
 	))
 
 
+# q: why does radix4_fft not match np.fft.fft?
+
 def radix4_fft(x):
 
 	X = np.copy(x)
@@ -60,9 +62,8 @@ def radix4_fft(x):
 
 				# calculates locations of twiddles
 				# if stage > 0:
-    			# twiddles = np.exp(-2j * np.pi * j * np.arange(1,4) / partitions)
-				twiddles = np.exp(-2j * np.pi * j * np.arange(1, 4) * stride / N)
-				X[idx[1:]] *= twiddles
+				# 	twiddles = np.exp(-2j * np.pi * j * np.arange(1, 4) / partitions)
+				# 	X[idx[1:]] *= twiddles
 
 				# applyies butterfly (verified)
 				X[idx] = np.dot(butterfly, X[idx])
@@ -72,8 +73,6 @@ def radix4_fft(x):
 		X[[idx1,idx2]] = X[[idx2,idx1]]
 
 	return X
-
-
 
 # Test the radix-4 FFT implementation
 N = 64
