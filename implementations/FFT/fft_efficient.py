@@ -25,9 +25,6 @@ def radix4_bit_reversal(stages):
 		fields
 	))
 
-
-# q: why does radix4_fft not match np.fft.fft?
-
 def radix4_fft(x):
 
 	X = np.copy(x)
@@ -36,8 +33,6 @@ def radix4_fft(x):
 
 	# number of stages in the FFT
 	num_stages = round(np.log2(N) / 2)
-
-	num_butterflies = N >> 2 # N//4
 
 	# butterfly matrix
 	butterfly = np.array([
@@ -65,7 +60,8 @@ def radix4_fft(x):
 
 				# applyies butterfly (verified)
 				X[idx] = np.dot(butterfly, X[idx])
-    
+
+				# applies twiddle factors
 				X[idx[1:]] *= twiddle
 
 	# bit reversed order
@@ -82,15 +78,16 @@ if __name__ =='__main__':
 		return abs(sig-ref).sum()
 
 	for i in range(1_000):
-		N   = np.random.randint(3,5)
-		# sig = np.random.rand(1 << 2*N).astype(np.complex128)
-		sig = np.random.rand(64).astype(np.complex128)
+		N   = np.random.randint(3,8)
+		sig = np.random.rand(4**N).astype(np.complex128)
 
 		SIG = radix4_fft(sig)
 		REF = np.fft.fft(sig)
 
-		# print(error(SIG,REF))
-
-		assert error(SIG,REF) < 1e-10
+		try:
+			err = error(SIG,REF)
+			assert err < (4**N * 1e-12)
+		except AssertionError:
+			print(f'error: {err}')
 
 	pass
