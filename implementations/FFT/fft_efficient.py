@@ -16,7 +16,7 @@ def radix4_bit_reversal(stages):
 	fields = [(i,bit_reversal(i)) for i in range(4**stages)]
 
 	for idx, field in enumerate(fields):
-    
+	
 		if field[1] < field[0]:
 			fields[idx] = (field[1], field[0])
 
@@ -25,16 +25,19 @@ def radix4_bit_reversal(stages):
 		fields
 	))
 
+
 def radix4_fft(x):
 
 	X = np.copy(x)
 
 	N = len(x)
 
+	# number of stages in the FFT
 	num_stages = round(np.log2(N) / 2)
 
-	num_butterflies = N//4
+	num_butterflies = N >> 2 # N//4
 
+	# butterfly matrix
 	butterfly = np.array([
 		[1,  1 ,  1,  1 ],
 		[1, -1j, -1,  1j],
@@ -44,17 +47,24 @@ def radix4_fft(x):
 
 	for stage in range(num_stages):
 
-		base_idx = 4**(num_stages-stage-1) * np.arange(0,4)
+		partitions = 1 << ( stage               << 1) # 4^stage
+		stride     = 1 << ((num_stages-stage-1) << 1) # 4^(num_stages-stage-1)
 
-		# twiddles = [
-		# 	np.exp(-2j*np.pi*np.arange(4)*k / (4**(stage+1))) for k in range(4**stage)
-		# ]
+		base_idx = stride * np.arange(0,4)
 
-		for i in range(num_butterflies >> 2*stage):
-			for j in range(4**stage):
+		for i in range(partitions): # 4^stage
+			for j in range(stride): # 4^(num_stages-stage-1)
 
-				idx = base_idx + j + k*(1 << 2*(stage))
+				# determines the index mask for the butterfly
+				idx = base_idx + j + i*(4*stride)
 
+				# calculates locations of twiddles
+				# if stage > 0:
+    			# twiddles = np.exp(-2j * np.pi * j * np.arange(1,4) / partitions)
+				twiddles = np.exp(-2j * np.pi * j * np.arange(1, 4) * stride / N)
+				X[idx[1:]] *= twiddles
+
+				# applyies butterfly (verified)
 				X[idx] = np.dot(butterfly, X[idx])
 
 	# bit reversed order
@@ -63,22 +73,36 @@ def radix4_fft(x):
 
 	return X
 
-if __name__ =='__main__':
 
-	import fft
 
-	def error(sig,ref):
-		return abs(sig-ref).sum()
+# Test the radix-4 FFT implementation
+N = 64
+x = np.random.rand(N) + 1j * np.random.rand(N)
 
-	for i in range(1_000):
-		N   = np.random.randint(3,5)
-		sig = np.random.rand(4**N).astype(np.complex128)
+X_radix4 = radix4_fft(x)
+X_numpy = np.fft.fft(x)
 
-		SIG = radix4_fft(sig)
-		REF = fft.radix4_fft(sig)
+print("Radix-4 FFT result:", X_radix4)
+print("NumPy FFT result:", X_numpy)
+print("Difference:", np.abs(X_radix4 - X_numpy))
 
-		abs(SIG).tofile('SIG.csv', sep = ',')
-		abs(REF).tofile('REF.csv', sep = ',')
+# if __name__ =='__main__':
 
-		print(error(SIG,REF))
-	pass
+# 	import fft
+
+# 	def error(sig,ref):
+# 		return abs(sig-ref).sum()
+
+# 	for i in range(1_000):
+# 		N   = np.random.randint(3,5)
+# 		# sig = np.random.rand(1 << 2*N).astype(np.complex128)
+# 		sig = np.random.rand(64).astype(np.complex128)
+
+# 		SIG = radix4_fft(sig)
+# 		REF = np.fft.fft(sig)
+
+# 		print(error(SIG,REF))
+
+# 		# assert error(SIG,REF) < 1e-10
+
+# 	pass
