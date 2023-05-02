@@ -25,11 +25,14 @@ def radix4_bit_reversal(stages):
 		fields
 	))
 
-def radix4_fft(x):
+def radix4_fft(x,dim=0,copy=True):
 
-	X = np.copy(x)
+	if copy:
+		X = np.copy(x)
+	else:
+		X = x
 
-	N = len(x)
+	N = x.shape[dim]
 
 	# number of stages in the FFT
 	num_stages = round(np.log2(N) / 2)
@@ -60,19 +63,33 @@ def radix4_fft(x):
 				# calculate twiddle factors
 				twiddle = twiddles[np.arange(1,4) * partitions * j]
 
-				# assert abs(twiddle_test - twiddle).sum() < 1e-12
-
 				# applyies butterfly (verified)
-				X[idx] = np.dot(butterfly, X[idx])
-
-				# applies twiddle factors
-				X[idx[1:]] *= twiddle
+				if dim == 0:
+					X[idx    ,:]  = np.dot(butterfly, X[idx,:])
+					X[idx[1:],:] *= np.expand_dims(twiddle, axis=1)
+				elif dim == 1:
+					X[:, idx    ]  = np.dot(butterfly, X[:,idx].T).T
+					X[:, idx[1:]] *= np.expand_dims(twiddle, axis=0)
 
 	# bit reversed order
-	for idx1, idx2 in radix4_bit_reversal(num_stages):
-		X[[idx1,idx2]] = X[[idx2,idx1]]
+	if dim == 0:
+		for idx1, idx2 in radix4_bit_reversal(num_stages):
+			X[[idx1,idx2],:] = X[[idx2,idx1],:]
+	elif dim == 1:
+		for idx1, idx2 in radix4_bit_reversal(num_stages):
+			X[:,[idx1,idx2]] = X[:,[idx2,idx1]]
 
 	return X
+
+def radix4_fft2d(x):
+    X = np.copy(x)
+    
+    return radix4_fft(
+        radix4_fft(
+            X,dim=0,copy=False
+        )
+        ,dim=1,copy=False
+    )
 
 if __name__ =='__main__':
 
@@ -82,15 +99,17 @@ if __name__ =='__main__':
 		return abs(sig-ref).sum()
 
 	for i in range(1_000):
-		N   = np.random.randint(3,8)
-		sig = np.random.rand(4**N).astype(np.complex128)
 
-		SIG = radix4_fft(sig)
-		REF = np.fft.fft(sig)
+		N = np.random.randint(2,4)
+		M = np.random.randint(2,4)
+		sig = np.random.rand(4**N,4**M).astype(np.complex128)
+
+		SIG = radix4_fft2d(sig)
+		REF = np.fft.fft2(sig)
 
 		try:
 			err = error(SIG,REF)
-			assert err < (4**N * 1e-12)
+			assert err < (64*4 * 1e-12)
 		except AssertionError:
 			print(f'error: {err}')
 
